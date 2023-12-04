@@ -32,7 +32,7 @@ import joblib
 from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
 
 # Definindo o caminho dos diretorios
-base_dir = '/media/michel/dados/data/amazonia/kaggle' # Ubuntu
+base_dir = "/mnt/c/Documents and Settings/miche/Documents/projects/datasets/amazonia/"
 #base_dir = 'D:/data/amazonia/kaggle'
 train_dir = os.path.join(base_dir, 'train-jpg')
 test_dir = os.path.join(base_dir, 'test-jpg')

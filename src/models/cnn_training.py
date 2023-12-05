@@ -15,7 +15,7 @@ sys.path.append("./")
 from src.utilities import *
 
 # Defining the hyparams
-targ_shape = (64, 64, 3)
+targ_shape = (128, 128, 3)
 dataset_name = 'amazon_data_%s.npz'%(targ_shape[0])
 opt = SGD(learning_rate=0.01, momentum=0.9)
 
@@ -158,6 +158,6 @@ def run():
 
 
 # Running everyting
-loss, fbeta = run()
+#loss, fbeta = run()
 
 

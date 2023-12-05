@@ -9,11 +9,15 @@ Created on TUE Apr 30 2021     10:00:00
 """
 
 # Importing the library
-from utilities import *
+import os
+import sys
+
+sys.path.append("./")
+from src.utilities import *
 
 # Defining the hyparams
-opt = SGD(lr=0.01, momentum=0.9)
-targ_shape = (32, 32, 3)
+opt = SGD(learning_rate=0.01, momentum=0.9)
+targ_shape = (64, 64, 3)
 targ_size = targ_shape[:-1]
 dataset_name = 'amazon_data_%s.npz'%(targ_shape[0])
 model_name = 'cnn_%s_SGD.h5'%(targ_shape[0])

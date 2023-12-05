@@ -9,7 +9,11 @@ Created on TUE Apr 30 2021     10:00:00
 """
 
 # Importing the library
-from utilities import *
+import os
+import sys
+
+sys.path.append("./")
+from src.utilities import *
 
 
 cnn = pd.read_csv(base_dir+'/'+'cnn_scores_all.csv')

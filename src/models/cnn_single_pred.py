@@ -15,7 +15,7 @@ sys.path.append("./")
 from src.utilities import *
 
 # Definind the hyparams
-opt = SGD(lr=0.01, momentum=0.9)
+opt = SGD(learning_rate=0.01, momentum=0.9)
 targ_shape = (16,16,3)
 targ_size = targ_shape[:-1]
 dataset_name = 'amazon_data_%s.npz'%(targ_shape[0])
@@ -50,7 +50,7 @@ imagefile = test_fnames[np.random.randint(0, len(test_fnames))]
 
 # Loading the test image
 img_name = imagefile
-print(img_name)
+print(f"Figure name: {img_name}")
 img = load_img(test_dir + '/' + img_name, target_size=targ_size)
 imgarray = img_to_array(img)
 imgarray = imgarray.reshape((1,) + imgarray.shape)  # Alterando a dimensão, agora é um vetor unidimensional

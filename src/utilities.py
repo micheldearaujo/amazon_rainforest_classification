@@ -71,15 +71,11 @@ def load_dataset_DL(dataset_name):
     # Separando os sets de training e testing
     Xtr, Xval, ytr, yval = train_test_split(X, y, test_size=0.2, random_state=1)
     Xval, yval = Xval[:4048,:], yval[:4048]
-    print('As dimensões dos vetores são: \n')
-    print('Xtr: ', Xtr.shape)
-    print('\n')
-    print('ytr: ', ytr.shape)
-    print('\n')
-    print('Xval: ', Xval.shape)
-    print('\n')
-    print('yval: ', yval.shape)
-    print('\n')
+    print('\nAs dimensões dos vetores são:')
+    print('X_train: ', Xtr.shape)
+    print('y_train: ', ytr.shape)
+    print('X_val: ', Xval.shape)
+    print('y_val: ', yval.shape)
     return Xtr, Xval, ytr, yval
 
 def load_testset_DL(dataset_name):
@@ -89,11 +85,9 @@ def load_testset_DL(dataset_name):
     # Criando o testset, lembrando que os primeiros 4048 são de validação, já utilizados em cima
     Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=1)
     Xte, yte = Xte[4048:,:], yte[4048:]
-    print('As dimensões dos vetores são: \n')
-    print('Xte shape: ', Xte.shape)
-    print('\n')
-    print('yte shape: ', yte.shape)
-    print('\n')
+    print('\nAs dimensões dos vetores são:')
+    print('X_test shape: ', Xte.shape)
+    print('y_test shape: ', yte.shape)
     return Xte, yte
 
 def load_testset_ML(dataset_name, targ_shape):

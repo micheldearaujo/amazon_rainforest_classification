@@ -31,104 +31,111 @@ from datetime import timedelta
 import joblib
 from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
 
-# Definindo o caminho dos diretorios
+# Define directory paths
 base_dir = "/mnt/c/Documents and Settings/miche/Documents/projects/datasets/amazonia/"
-#base_dir = 'D:/data/amazonia/kaggle'
 train_dir = os.path.join(base_dir, 'train-jpg')
 test_dir = os.path.join(base_dir, 'test-jpg')
 train_fnames = os.listdir(train_dir)
 test_fnames = os.listdir(test_dir)
 
+# Define Model parameters
+targ_shape = (16, 16, 3)  #  Image size
+dataset_name = 'amazon_data_%s.npz'%(targ_shape[0]) # Dataset accordingly to the image size
+test_dataset_name = 'test_amazon_data_%s.npz'%(targ_shape[0]) # Dataset accordingly to the image size
+opt = SGD(learning_rate=0.01, momentum=0.9) # Model Optimizer
 
-# Loading the dataset for the ML algorithms
-def load_dataset_ML(dataset_name, targ_shape):
-    data = np.load(base_dir+'/'+dataset_name)
+
+def load_dataset(dataset_name, training=True):
+    """
+    Loads the dataset for deep learning algorithms.
+
+    Parameters:
+    - dataset_name (str): Name of the dataset file.
+    - training (bool): If True, splits the dataset into training and validation sets.
+
+    Returns:
+    If training=True:
+        tuple: (Xtr, Xval, ytr, yval), where Xtr and Xval are training and validation sets of images,
+               and ytr and yval are corresponding labels.
+    If training=False:
+        tuple: (X, y), where X is the set of images and y is the corresponding labels.
+    """
+    # Loading
+    data = np.load(base_dir + '/' + dataset_name)
     X, y = data['arr_0'], data['arr_1']
-    print('Dimensões: ')
-    print('X: ',X.shape, '\n y: ', y.shape)
-    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.3, random_state=1)
-    Xtr = Xtr.reshape(Xtr.shape[0], targ_shape[0] * targ_shape[0] * 3)  ## Vamos concatenar os dados das 3 dimensoes em apenas 1 dimensão
-    Xte = Xte.reshape(Xte.shape[0], targ_shape[0] * targ_shape[0] * 3)
-    #Xtr = Xtr.reshape(-1,1)
-    #Xte = Xte.reshape(-1,1)
-    # Dividindo o set test em dois, para temos validation+test
-    Xval = Xte[:4048, :]
-    yval = yte[:4048]
-    Xte = Xte[4048:, :]
-    yte = yte[4048:]
-    # Normalizando os dados entre 0 e 1
-    scaler = MinMaxScaler()
-    Xtr = scaler.fit_transform(Xtr)
-    Xval = scaler.fit_transform(Xval)
-    Xte = scaler.fit_transform(Xte)
-    return Xtr, Xval, ytr, yval
 
-# Loading the dataset for the DL algorithms
-def load_dataset_DL(dataset_name):
-    # Carregando
-    data = np.load(base_dir + '/'+ dataset_name)
-    X, y = data['arr_0'], data['arr_1']
-    # Separando os sets de training e testing
-    Xtr, Xval, ytr, yval = train_test_split(X, y, test_size=0.2, random_state=1)
-    Xval, yval = Xval[:4048,:], yval[:4048]
-    print('\nAs dimensões dos vetores são:')
-    print('X_train: ', Xtr.shape)
-    print('y_train: ', ytr.shape)
-    print('X_val: ', Xval.shape)
-    print('y_val: ', yval.shape)
-    return Xtr, Xval, ytr, yval
+    if training:
+        # Separating training and validation sets
+        Xtr, Xval, ytr, yval = train_test_split(X, y, test_size=0.1, random_state=1)
 
-def load_testset_DL(dataset_name):
-    # Carregando
-    data = np.load(base_dir + '/'+ dataset_name)
-    X, y = data['arr_0'], data['arr_1']
-    # Criando o testset, lembrando que os primeiros 4048 são de validação, já utilizados em cima
-    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=1)
-    Xte, yte = Xte[4048:,:], yte[4048:]
-    print('\nAs dimensões dos vetores são:')
-    print('X_test shape: ', Xte.shape)
-    print('y_test shape: ', yte.shape)
-    return Xte, yte
+        print('\nDimensions of the vectors are:')
+        print('X_train: ', Xtr.shape)
+        print('y_train: ', ytr.shape)
+        print('X_val: ', Xval.shape)
+        print('y_val: ', yval.shape)
 
-def load_testset_ML(dataset_name, targ_shape):
-    # Carregando
-    data = np.load(base_dir + '/'+ dataset_name)
-    X, y = data['arr_0'], data['arr_1']
-    # Criando o testset, lembrando que os primeiros 4048 são de validação, já utilizados em cima
-    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=1)
-    Xtr = Xtr.reshape(Xtr.shape[0], targ_shape[0] * targ_shape[0] * 3)  ## Vamos concatenar os dados das 3 dimensoes em apenas 1 dimensão
-    Xte = Xte.reshape(Xte.shape[0], targ_shape[0] * targ_shape[0] * 3)
-    Xte, yte = Xte[4048:,:], yte[4048:]
-    print('As dimensões dos vetores são: \n')
-    print('Xte shape: ', Xte.shape)
-    print('\n')
-    print('yte shape: ', yte.shape)
-    print('\n')
-    return Xte, yte
+        return Xtr, Xval, ytr, yval
+    else:
+        return X, y
 
 
-# Creating a function to calcutate the fbeta score
+
+# Creating a function to calculate the fbeta score
 def fbeta(y_true, y_pred, beta=2):
-    # Clipando a previsao
+    """
+    Calculates the Fbeta score.
+
+    Parameters:
+    - y_true (tf.Tensor): True labels.
+    - y_pred (tf.Tensor): Predicted labels.
+    - beta (float): Beta value for Fbeta score calculation.
+
+    Returns:
+    tf.Tensor: Fbeta score.
+    """
+    # Clipping the prediction
     y_pred = backend.clip(y_pred, 0, 1)
     tp = backend.sum(backend.round(backend.clip(y_true*y_pred, 0, 1)), axis=1)
     fp = backend.sum(backend.round(backend.clip(y_pred-y_true, 0, 1)), axis=1)
     fn = backend.sum(backend.round(backend.clip(y_true-y_pred, 0, 1)), axis=1)
-    # Calculando a precisao
+    # Calculating precision
     p = tp/(tp+fp+backend.epsilon())
-    # Calculando o Recall
+    # Calculating recall
     r = tp/(tp+fn+backend.epsilon())
-    # calculando o fbeta, tirado a média para cada classe
+    # Calculating Fbeta, taking the mean for each class
     bb = beta**2
     fbeta_score = backend.mean((1+bb)*(p*r)/(bb*p+r+backend.epsilon()))
     return fbeta_score
 
-def evaluation(model, x, true):
-    ypred = model.predict(x)
-    return f1_score(true, ypred, average='samples')
 
-# Creating a dictionary connecting a numeric value to each label
+def evaluation(model, x, true):
+    """
+    Evaluates the model using F1 score.
+
+    Parameters:
+    - model (tf.keras.models.Model): The trained model.
+    - x (np.ndarray): Input data.
+    - true (np.ndarray): True labels.
+
+    Returns:
+    float: F1 score.
+    """
+    y_pred = model.predict(x)
+    return f1_score(true, y_pred, average='samples')
+
+
+# Creating a mapping
 def create_tag_map(mapping_csv):
+    """
+    Creates a mapping of tags to numerical values.
+
+    Parameters:
+    - mapping_csv (pd.DataFrame): DataFrame containing 'tags' column.
+
+    Returns:
+    tuple: (labels_map, inv_labels_map) where labels_map is a mapping from tag to number,
+           and inv_labels_map is the inverse mapping.
+    """
     labels = set()
     for i in range(len(mapping_csv)):
         tags = mapping_csv['tags'][i].split(' ')
@@ -140,16 +147,43 @@ def create_tag_map(mapping_csv):
     inv_labels_map = {k: labels[k] for k in range(len(labels))}
     return labels_map, inv_labels_map
 
-# Creating a dictionary with all images and their labels
+# Creating a file mapping
 def create_file_mapping(mapping_csv):
-    mapping=dict() # Criamos um dicionário vazio
+    """
+    Creates a mapping of filenames to corresponding tags.
+
+    Parameters:
+    - mapping_csv (pd.DataFrame): DataFrame containing 'image_name' and 'tags' columns.
+
+    Returns:
+    dict: A mapping from filename to a list of tags.
+    """
+    mapping = dict()
     for j in range(len(mapping_csv)):
-        """ percorremos o dataframe inteiro, pegando cada nome da imagem
-        e sua respectiva tag, então separamos a tag por espaço
-        e dizemos que o nome da tag é igual a sua tag, isso cria o dicionário!
-        Agora temos multilabels para cada imagem.
-        """
         name, tags = mapping_csv['image_name'][j], mapping_csv['tags'][j]
         mapping[name] = tags.split(' ')
     return mapping
 
+
+def use_gpu():
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+                logical_gpus = tf.config.list_logical_devices('GPU')
+                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+
+
+def do_not_use_gpu():
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
+    if tf.test.gpu_device_name():
+        print('GPU found')
+    else:
+        print("No GPU found")

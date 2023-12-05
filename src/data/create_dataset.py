@@ -14,11 +14,8 @@ import sys
 sys.path.append("./")
 from src.utilities import *
 
-# Defining the hyparams
-targ_size = (128, 128)
-
 # Plotting some images
-def plot_imagens():
+def plot_images():
     for i in range(9):
         plt.subplot(330+1+i)
         filename = train_dir + '/' +train_fnames[i+1]
@@ -26,15 +23,14 @@ def plot_imagens():
         plt.imshow(image)
     plt.show()
 
-#plot_imagens()
 
-# Lets create some maps
+
+# Lets create a mapping
 # As can be seen, the images are not labeled by the file name
 # There is a separeted csv file which holds all the images names and its labels
 # We need to create a map to link the images with its labels
 
 mapping_csv = pd.read_csv(base_dir + '/train_classes.csv')
-
 
 # Vamos criar um conjunto (set) de tags para cada atributo na coluna tags.
 # Como uma figura pode ter mais de uma classificação, então iremos atribuir uma lista de classificações para cada imagem.
@@ -80,11 +76,12 @@ def one_hot_enconde(tags, mapping):
 
 
 # Creating a function to transform the images into a arrays
-def load_dataset(path, file_mapping, tag_mapping,targ_size):
+def load_dataset(path, file_mapping, tag_mapping, targ_size):
     pics, targets = list(), list()
 
     # Vai percorrer todas as imagens no diretório
-    for filename in os.listdir(path):
+    for filename in [os.listdir(path)[0]]:
+        print(f"\n- Loading image {filename} into size of {targ_size}")
 
         # Carrega a imagen com as dimensoes especificadas
         pic = load_img(path + '/' + filename, target_size=targ_size)
@@ -94,13 +91,20 @@ def load_dataset(path, file_mapping, tag_mapping,targ_size):
 
         # Cria o mapeamento das tags para o nome dos arquivos
         tags = file_mapping[filename[:-4]]
+        print(f"- Mapping the filename to the classes:")
+        print(f"- Filename {filename[:-4]} converts to classses {tags}")
 
         # Transforma a tag de texto para numeros
         target = one_hot_enconde(tags, tag_mapping)
+        print(f"- Tags {tags} converts to {target} after One Hot Enconding...")
 
         # Junta todos os arrays criados nas listas de imagens e labels
         pics.append(pic)
         targets.append(target)
+
+        print(f"- Now we have to lists: ")
+        print(f"The picture has the shape of: {np.array(pics).shape}")
+        print(f"Targets: {targets}")
 
     # as imagens e os labels eram listas, vamos carregar como arrays
     X = np.asarray(pics, dtype='uint8')
@@ -108,25 +112,25 @@ def load_dataset(path, file_mapping, tag_mapping,targ_size):
     return X, y
 
 # Executando
-
+plot_images()
 
 # definindo o nome do csv
 filename='train_classes.csv'
+
 # Definindo o nome dos dados a serem salvos
-dataset_name = 'amazon_data_%s.npz'%(targ_size[0])
+dataset_name = 'amazon_data_%s.npz'%(targ_shape[0])
+
 # Criando o dataframe com as tags das imagens
 mapping_csv = pd.read_csv(base_dir + '/' +filename)
+
 # Criando o dicionário com as tags strings para numeros
 tag_mapping, _ = create_tag_map(mapping_csv)
+
 # Criando o mapa dos arquivos para as tags list
 file_mapping = create_file_mapping(mapping_csv)
-# Carregando as iamgens jpegs em arrays
-X, y = load_dataset(train_dir, file_mapping, tag_mapping, targ_size)
-print(X.shape, y.shape)
-# Salvando os arrays, só precisamos usar este código 1 vez para
-# para cada dataset
-np.savez_compressed(base_dir + '/' + dataset_name, X, y)
 
-# Para carregar os dados
-# data = np.load(base_dir +'/amazon_data.npz')
-# X, y = data['arr_0'], data['arr_1']
+# Carregando as iamgens jpegs em arrays
+X, y = load_dataset(train_dir, file_mapping, tag_mapping, targ_shape)
+
+# Salvando os arrays, só precisamos usar este código 1 vez para para cada dataset
+#np.savez_compressed(base_dir + '/' + dataset_name, X, y)

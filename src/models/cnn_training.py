@@ -7,47 +7,41 @@ Created on TUE Apr 30 2021     10:00:00
 
 """
 
-# Importing the library
 import os
 import sys
-
 sys.path.append("./")
-from src.utilities import *
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras import backend as K
+import time
+from datetime import timedelta
 
-# Defining the hyparams
-targ_shape = (128, 128, 3)
-dataset_name = 'amazon_data_%s.npz'%(targ_shape[0])
-opt = SGD(learning_rate=0.01, momentum=0.9)
-
-
-def use_gpu():
-    gpus = tf.config.list_physical_devices('GPU')
-    if gpus:
-        try:
-            # Currently, memory growth needs to be the same across GPUs
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-                logical_gpus = tf.config.list_logical_devices('GPU')
-                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-        except RuntimeError as e:
-            # Memory growth must be set before GPUs have been initialized
-            print(e)
-
-def do_not_use_gpu():
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
-    if tf.test.gpu_device_name():
-        print('GPU found')
-    else:
-        print("No GPU found")
-
-
-use_gpu()
+from src.utilities import (
+    load_dataset, 
+    targ_shape,
+    dataset_name,
+    test_dataset_name,
+    opt,
+    base_dir,
+    fbeta
+)
 
 # Creating the CNN model, using VGG Blocks
-# Three blocks of two 3x3 convolutions and a 2x2 MaxPooling2D
 def define_model(in_shape=targ_shape, out_shape=17):
+    """
+    Creates a Convolutional Neural Network model using VGG-like architecture.
+
+    Parameters:
+    - in_shape (tuple): Input shape of the images.
+    - out_shape (int): Number of output classes.
+
+    Returns:
+    tf.keras.models.Sequential: CNN model.
+    """
     modelo = Sequential()
     modelo.add(Conv2D(int(targ_shape[0]/4), (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same', input_shape=targ_shape))
     modelo.add(Conv2D(int(targ_shape[0]/4), (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
@@ -61,103 +55,103 @@ def define_model(in_shape=targ_shape, out_shape=17):
     modelo.add(Flatten())
     modelo.add(Dense(targ_shape[0], activation='relu', kernel_initializer='he_uniform'))
     modelo.add(Dense(out_shape, activation='sigmoid'))
-    # Compilando
-    # Carregando os weights em caso de interrupção anterior:
     modelo.compile(optimizer=opt, loss='binary_crossentropy', metrics=[fbeta])
     return modelo
 
 # Plotting the training results
-def resumo(modelohis):
-    # Plotando o loss
+def plot_training_results(model_history):
+    """
+    Plots the training results including loss and Fbeta score.
+
+    Parameters:
+    - model_history (tf.keras.callbacks.History): Training history object.
+    """
+    # Plotting loss
     plt.subplot(211)
     plt.title('Cross Entropy Loss')
-    plt.plot(modelohis.history['loss'], color='blue', label='Training Loss')
-    plt.plot(modelohis.history['val_loss'], color='orange', label='Validation Loss')
+    plt.plot(model_history.history['loss'], color='blue', label='Training Loss')
+    plt.plot(model_history.history['val_loss'], color='orange', label='Validation Loss')
     plt.legend()
-    # Plotting accuracy
+    # Plotting Fbeta score
     plt.subplot(212)
     plt.title('Fbeta Score')
-    plt.plot(modelohis.history['fbeta'], color='blue', label='Training Fbeta')
-    plt.plot(modelohis.history['val_fbeta'], color='orange', label='Validation Fbeta')
+    plt.plot(model_history.history['fbeta'], color='blue', label='Training Fbeta')
+    plt.plot(model_history.history['val_fbeta'], color='orange', label='Validation Fbeta')
     plt.legend()
-    # saving the plot
+    # Saving the plot
     filename = sys.argv[0].split('/')[-1]
     plt.tight_layout()
-    plt.savefig(base_dir+'/'+filename + '_plot_%s_SGD.png'%(targ_shape[0]))
+    plt.savefig(os.path.join(base_dir, filename + f'_plot_{targ_shape[0]}_SGD.png'))
     plt.close()
 
 # Executing the model
 def run():
-    # Load
-    Xtr, Xval, ytr, yval = load_dataset_DL(dataset_name)
-    # Creating the data augmentation
-    train_datagen = ImageDataGenerator(rescale=1.0/255.0,
-                                       horizontal_flip=True,
-                                       vertical_flip=True,
-                                       rotation_range=90)
+    """
+    Executes the CNN model training and evaluates its performance.
+    """
+    # Load training dataset
+    X_train, X_val, y_train, y_val = load_dataset(dataset_name)
+    X_test, y_test = load_dataset(test_dataset_name, False)
 
-    # The test images are only reescaled
-
+    # Creating data augmentation
+    train_datagen = ImageDataGenerator(
+        rescale=1.0/255.0,
+        horizontal_flip=True,
+        vertical_flip=True,
+        rotation_range=90
+    )
     val_datagen = ImageDataGenerator(rescale=1.0/255.0)
 
-    # Applying the iterators
-    # Here is created the arrays who will feed the model
-    # The Xtr and Xte arrays will become the iterators
-    # train_it and val_it are the new Xtr and Xte
-    train_it = train_datagen.flow(Xtr, ytr, batch_size=targ_shape[0])
-    val_it = val_datagen.flow(Xval, yval, batch_size=targ_shape[0])
-    #test_it = test_datagen.flow(Xte, yte, batch_size=targ_shape[0])
+
+    # Applying iterators
+    train_iterator = train_datagen.flow(X_train, y_train, batch_size=targ_shape[0])
+    val_iterator = val_datagen.flow(X_val, y_val, batch_size=targ_shape[0])
+    test_iterator = val_datagen.flow(X_test, y_test, batch_size=targ_shape[0])
 
     # Building the model
     model = define_model()
-    model_name = 'cnn_%s_SGD.h5' % (targ_shape[0])
-    # checkpoint = ModelCheckpoint(base_dir+'/'+model_name, monitor='loss', save_best_only=True,
-    #                              mode='min', save_freq=1, save_weights_only=True)
+    model_name = f'cnn_{targ_shape[0]}_SGD.h5'
+
     early_stop = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=25)
 
-
-    # Fitting
+    # Fitting the model
     start_time = time.monotonic()
-    modelfit = model.fit(train_it,
-                                     steps_per_epoch=len(train_it),
-                                     validation_data=val_it,
-                                     validation_steps=len(val_it),
-                                     epochs=200,
-                                     verbose=1,
-                           callbacks=[early_stop])
-    # Avaliando o modelo
-    loss, fbeta = model.evaluate(val_it,
-                                            steps=len(val_it),
-                                            verbose=1)
-    end_time = time.monotonic()
-    tempo = timedelta(seconds=end_time - start_time)
+    model_history = model.fit(
+        train_iterator,
+        steps_per_epoch=len(train_iterator),
+        validation_data=val_iterator,
+        validation_steps=len(val_iterator),
+        epochs=200,
+        verbose=1,
+        callbacks=[early_stop]
+    )
 
-    print('> loss=%.3f, fbeta=%.3f'%(loss, fbeta))
+    # Evaluating the model on test data
+    loss, fbeta = model.evaluate(test_iterator, steps=len(test_iterator), verbose=1)
+    end_time = time.monotonic()
+    elapsed_time = timedelta(seconds=end_time - start_time)
+
+    print(f'> loss={loss:.3f}, fbeta={fbeta:.3f}')
 
     # Saving the model
-    model_name = 'cnn_%s_SGD.h5'%(targ_shape[0])
-    # Salvando o modelo para futuras previsoes
-    model.save(base_dir+'/'+model_name)
-    # Plotando as curvas de aprendizado
-    resumo(modelfit)
+    model.save(os.path.join(base_dir, model_name))
 
+    # Plotting the learning curves
+    plot_training_results(model_history)
 
-    file = open(base_dir + '/' + 'cnn_training.txt', 'a')
-    file.write('Training platform: My notebook Ubuntu CPU\n')
-    file.write('Image Size: %s\n' % targ_shape[0])
-    file.write('Training time: %s\n' % tempo)
-    file.write('Loss: %s\n' % loss)
-    file.write('Fbeta_score: %s\n' % fbeta)
-    file.write('----------------------------------------------------\n')
-    file.close()
-    print('Tempo do treinamento: ')
-    print(tempo)
+    # Writing training details to a file
+    with open(os.path.join(base_dir, 'cnn_training.txt'), 'a') as file:
+        file.write('Training platform: CPU - New test set\n')
+        file.write(f'Image Size: {targ_shape[0]}\n')
+        file.write(f'Training time: {elapsed_time}\n')
+        file.write(f'Loss: {loss}\n')
+        file.write(f'Fbeta_score: {fbeta}\n')
+        file.write('----------------------------------------------------\n')
+
+    print('Training time:')
+    print(elapsed_time)
 
     return loss, fbeta
 
-
-
-# Running everyting
-#loss, fbeta = run()
-
-
+# Running everything
+loss, fbeta = run()

@@ -15,11 +15,6 @@ import sys
 sys.path.append("./")
 from src.utilities import *
 
-# Defining the hyparams
-opt = SGD(learning_rate=0.01, momentum=0.9)
-targ_shape = (64, 64, 3)
-targ_size = targ_shape[:-1]
-dataset_name = 'amazon_data_%s.npz'%(targ_shape[0])
 model_name = 'cnn_%s_SGD.h5'%(targ_shape[0])
 
 # Load the file with the images names and labels
@@ -36,7 +31,7 @@ mapping = create_file_mapping(mapping_csv)
 labels_map, inv_labels_map = create_tag_map(mapping_csv)
 
 # Loading the testset
-Xte, yte = load_testset_DL(dataset_name)
+Xte, yte = load_dataset(test_dataset_name, False)
 
 # Creating a list with all possible labels
 all_labels = []
@@ -44,7 +39,7 @@ for i in range(len(inv_labels_map)):
     all_labels.append(inv_labels_map[i])
 
 # Defining the thresholds
-thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+thresholds = [0.5]
 
 # Creating some counters
 TPl, FPl, TNl, FNl = [], [], [], []
@@ -55,10 +50,11 @@ start_time = time.monotonic()
 for threshold in thresholds:
     TP, FP, TN, FN = 0, 0, 0, 0
     print('Loop: ',threshold)
-    for image_no in range(len(Xte), 2*len(Xte)): #8096
+    #for image_no in range(len(Xte), 2*len(Xte)): #8096
+    for img_name in os.listdir(test_dir):
         # Loading the test image
-        img_name = 'train_%s.jpg'%image_no
-        img = load_img(train_dir+'/'+img_name, target_size=targ_size)
+        #img_name = 'train_%s.jpg'%image_no
+        img = load_img(test_dir+'/'+img_name, target_size=targ_shape)
         imgarray = img_to_array(img)
         imgarray = imgarray.reshape((1,)+imgarray.shape) # Alterando a dimensão, agora é um vetor unidimensional
         imgarray = imgarray/255
@@ -67,7 +63,7 @@ for threshold in thresholds:
         predicted_labels = modelo.predict(imgarray)
 
         # Creating a list with images true labels
-        true_labels = mapping['train_%s'%image_no]
+        true_labels = mapping[img_name[:-4]]
 
         # Creating a ordered list with the images true labels and the other labels
         true_labels_list = [0 for i in range(len(all_labels))]
@@ -76,7 +72,7 @@ for threshold in thresholds:
             true_labels_list[index_] = 1
 
         # Creating a dataframe to organize all the info
-        df_labels = pd.DataFrame(all_labels, columns=['Labels'])
+        df_labels = pd.DataFrame(all_labels, columns=['Lbels'])
         df_labels['True_labels'] = pd.Series(true_labels_list)
         df_labels['Predicted_proba'] = pd.Series(predicted_labels[0])
 
@@ -133,4 +129,3 @@ dic = {'Avg TP':TPl,
        'Avg F1_score':f1_scorel}
 final_scores = pd.DataFrame(dic, index=thresholds)
 final_scores.to_csv(base_dir+'/'+'cnn_scores_%s.csv'%(targ_shape[0]))
-

@@ -103,7 +103,7 @@ def load_dataset(training_path, file_mapping, tag_mapping, targ_size):
 if __name__ == "__main__":
 
     # Plotting images
-    plot_images(train_dir, train_fnames)
+    #plot_images(train_dir, train_fnames)
 
     # Defining the CSV filename
     mapping_csv_filename = 'train_classes.csv'
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     file_mapping = create_file_mapping(mapping_csv)
 
     # Loading JPEG images into arrays
-    X, y = load_dataset(train_dir, file_mapping, tag_mapping, targ_shape)
+    X, y = load_dataset(test_dir, file_mapping, tag_mapping, targ_shape)
 
     # Saving the arrays
     np.savez_compressed(os.path.join(base_dir, dataset_name), X, y)

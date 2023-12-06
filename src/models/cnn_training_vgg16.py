@@ -12,8 +12,9 @@ import sys
 sys.path.append("./")
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.applications import VGG16
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras import backend as K
@@ -31,7 +32,7 @@ from src.utilities import (
 )
 
 # Creating the CNN model, using VGG Blocks
-def define_model(in_shape=targ_shape, out_shape=17):
+def define_model_vgg16(in_shape=targ_shape, out_shape=17):
     """
     Creates a Convolutional Neural Network model using VGG-like architecture.
 
@@ -42,21 +43,21 @@ def define_model(in_shape=targ_shape, out_shape=17):
     Returns:
     tf.keras.models.Sequential: CNN model.
     """
-    modelo = Sequential()
-    modelo.add(Conv2D(int(targ_shape[0]/4), (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same', input_shape=targ_shape))
-    modelo.add(Conv2D(int(targ_shape[0]/4), (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
-    modelo.add(MaxPooling2D((2, 2)))
-    modelo.add(Conv2D(int(targ_shape[0]/2), (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
-    modelo.add(Conv2D(int(targ_shape[0]/2), (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
-    modelo.add(MaxPooling2D((2, 2)))
-    modelo.add(Conv2D(targ_shape[0], (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
-    modelo.add(Conv2D(targ_shape[0], (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
-    modelo.add(MaxPooling2D((2, 2)))
-    modelo.add(Flatten())
-    modelo.add(Dense(targ_shape[0], activation='relu', kernel_initializer='he_uniform'))
-    modelo.add(Dense(out_shape, activation='sigmoid'))
-    modelo.compile(optimizer=opt, loss='binary_crossentropy', metrics=[fbeta])
-    return modelo
+
+    # Create a VGG16 model
+    base_model = VGG16(weights='imagenet', include_top=False, input_shape=targ_shape)
+    # Freeze the pre-trained layers
+    for layer in base_model.layers:
+        layer.trainable = False
+    
+    model = Sequential()
+    model.add(base_model)
+    model.add(Flatten())
+    model.add(Dense(512, activation='relu'))
+    #model.add(Dropout(0.5))
+    model.add(Dense(out_shape, activation='sigmoid'))  # Adjust the number of output classes
+    model.compile(optimizer=opt, loss='binary_crossentropy', metrics=[fbeta])
+    return model
 
 # Plotting the training results
 def plot_training_results(model_history):
@@ -111,8 +112,8 @@ def run():
     test_iterator = val_datagen.flow(X_test, y_test, batch_size=batch_size)
 
     # Building the model
-    model = define_model()
-    model_name = f'cnn_{targ_shape[0]}_SGD.h5'
+    model = define_model_vgg16()
+    model_name = f'cnn_{targ_shape[0]}_SGD_VGG16.h5'
 
     early_stop = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=25)
 

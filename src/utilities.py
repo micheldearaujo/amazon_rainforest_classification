@@ -39,7 +39,7 @@ train_fnames = os.listdir(train_dir)
 test_fnames = os.listdir(test_dir)
 
 # Define Model parameters
-targ_shape = (16, 16, 3)  #  Image size
+targ_shape = (64, 64, 3)  #  Image size
 dataset_name = 'amazon_data_%s.npz'%(targ_shape[0]) # Dataset accordingly to the image size
 test_dataset_name = 'test_amazon_data_%s.npz'%(targ_shape[0]) # Dataset accordingly to the image size
 opt = SGD(learning_rate=0.01, momentum=0.9) # Model Optimizer
@@ -63,6 +63,7 @@ def load_dataset(dataset_name, training=True):
     # Loading
     data = np.load(base_dir + '/' + dataset_name)
     X, y = data['arr_0'], data['arr_1']
+    print(f"Shape of the original dataset: {X.shape}")
 
     if training:
         # Separating training and validation sets

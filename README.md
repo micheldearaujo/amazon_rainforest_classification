@@ -9,6 +9,6 @@ The results indicate that Amazon rainforest can be monitored with affordable com
 
 ### Please, [click here](https://ieeexplore.ieee.org/document/9628252/metrics#metrics) to check out the results of this research.
 
-![alt text](https://github.com/micheldearaujo/amazon_rainforest_classification/figures/output1.png)
+![alt text](https://github.com/micheldearaujo/amazon_rainforest_classification/blob/main/figures/output1.png)
 
-![alt text](https://github.com/micheldearaujo/amazon_rainforest_classification/figures/output.png)
+![alt text](https://github.com/micheldearaujo/amazon_rainforest_classification/blob/main/figures/output.png)

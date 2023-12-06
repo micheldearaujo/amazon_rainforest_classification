@@ -8,3 +8,7 @@ Although there is a direct relationship between image accuracy and quality, our 
 The results indicate that Amazon rainforest can be monitored with affordable computing resources such as drones.
 
 ### Please, [click here](https://ieeexplore.ieee.org/document/9628252/metrics#metrics) to check out the results of this research.
+
+![alt text](https://github.com/micheldearaujo/amazon_rainforest_classification/figures/output1.png)
+
+![alt text](https://github.com/micheldearaujo/amazon_rainforest_classification/figures/output.png)
